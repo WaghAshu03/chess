@@ -170,13 +170,7 @@ void reset_board(square board[size][size])
     }
 }
 
-int valid_pawn_move(
-    square board[size][size],
-    int from_rank,
-    int from_file,
-    int to_rank,
-    int to_file,
-    square *possible_en_passant_square)
+int valid_pawn_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file, square *possible_en_passant_square)
 {
 
     if (
@@ -195,13 +189,13 @@ int valid_pawn_move(
     {
         int total_moves = to_rank - from_rank; // +ve for white and -ve for black
 
-        if (total_moves == 1 && board[from_rank][from_file].piece->color == 'W' && board[to_rank][to_file].piece == NULL)
+        if (move_num % 2 == 1 && total_moves == 1 && board[from_rank][from_file].piece->color == 'W' && board[to_rank][to_file].piece == NULL)
             return 1;
-        else if (total_moves == -1 && board[from_rank][from_file].piece->color == 'B' && board[to_rank][to_file].piece == NULL)
+        else if (move_num % 2 == 0 && total_moves == -1 && board[from_rank][from_file].piece->color == 'B' && board[to_rank][to_file].piece == NULL)
             return 1;
-        else if (total_moves == 2 && board[from_rank][from_file].piece->color == 'W' && from_rank == 1 && board[from_rank + 1][from_file].piece == NULL && board[from_rank + 2][from_file].piece == NULL)
+        else if (move_num % 2 == 1 && total_moves == 2 && board[from_rank][from_file].piece->color == 'W' && from_rank == 1 && board[from_rank + 1][from_file].piece == NULL && board[from_rank + 2][from_file].piece == NULL)
             return 3;
-        else if (total_moves == -2 && board[from_rank][from_file].piece->color == 'B' && from_rank == 6 && board[from_rank - 1][from_file].piece == NULL && board[from_rank - 2][from_file].piece == NULL)
+        else if (move_num % 2 == 0 && total_moves == -2 && board[from_rank][from_file].piece->color == 'B' && from_rank == 6 && board[from_rank - 1][from_file].piece == NULL && board[from_rank - 2][from_file].piece == NULL)
             return 3;
     }
 
@@ -209,21 +203,27 @@ int valid_pawn_move(
     if (from_file - to_file == 1 || from_file - to_file == -1)
     {
         // Simple Capture
-        if (board[from_rank][from_file].piece->color == 'W' &&
+        if (move_num % 2 == 1 && board[from_rank][from_file].piece->color == 'W' &&
             to_rank - from_rank == 1 &&
             board[to_rank][to_file].piece != NULL &&
             board[to_rank][to_file].piece->color == 'B')
             return 2;
 
-        if (board[from_rank][from_file].piece->color == 'B' &&
+        if (move_num % 2 == 0 && board[from_rank][from_file].piece->color == 'B' &&
             to_rank - from_rank == -1 &&
             board[to_rank][to_file].piece != NULL &&
             board[to_rank][to_file].piece->color == 'W')
             return 2;
 
         // En Passant
-        if (possible_en_passant_square != NULL &&
-            (to_rank - possible_en_passant_square->rank == 1 || to_rank - possible_en_passant_square->rank == -1) &&
+        if (move_num % 2 == 1 && possible_en_passant_square != NULL &&
+            (to_rank - possible_en_passant_square->rank == 1) &&
+            (to_file == possible_en_passant_square->file) &&
+            (to_file - from_file == 1 || to_file - from_file == -1))
+            return 4;
+
+        if (move_num % 2 == 0 && possible_en_passant_square != NULL &&
+            (to_rank - possible_en_passant_square->rank == -1) &&
             (to_file == possible_en_passant_square->file) &&
             (to_file - from_file == 1 || to_file - from_file == -1))
             return 4;
