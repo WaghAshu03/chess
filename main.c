@@ -50,6 +50,7 @@ Initial State of the board
 #include <stdlib.h>
 #include <string.h>
 #include <Windows.h>
+#include <unistd.h>
 
 #define size 8
 
@@ -63,6 +64,7 @@ typedef struct piece
     char color;
     char *symbol;
     int piece_active;
+    int piece_moved;
 } piece;
 
 typedef struct square
@@ -84,11 +86,11 @@ typedef struct piece_side
 } piece_side;
 
 piece_side white = {
-    .King = {.cost = 900, .type = 'K', .color = 'W', .symbol = "♚", .piece_active = 1},
+    .King = {.cost = 900, .type = 'K', .color = 'W', .symbol = "♚", .piece_active = 1, .piece_moved = 0},
     .Queen = {.cost = 9, .type = 'Q', .color = 'W', .symbol = "♛", .piece_active = 1},
     .Knight = {{.cost = 3, .type = 'N', .color = 'W', .symbol = "♞", .piece_active = 1}, {.cost = 3, .type = 'N', .color = 'W', .symbol = "♞", .piece_active = 1}},
     .Bishop = {{.cost = 3, .type = 'B', .color = 'W', .symbol = "♝", .piece_active = 1}, {.cost = 3, .type = 'B', .color = 'W', .symbol = "♝", .piece_active = 1}},
-    .Rook = {{.cost = 5, .type = 'R', .color = 'W', .symbol = "♜", .piece_active = 1}, {.cost = 5, .type = 'R', .color = 'W', .symbol = "♜", .piece_active = 1}},
+    .Rook = {{.cost = 5, .type = 'R', .color = 'W', .symbol = "♜", .piece_active = 1, .piece_moved = 0}, {.cost = 5, .type = 'R', .color = 'W', .symbol = "♜", .piece_active = 1, .piece_moved = 0}},
     .Pawn = {
         {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟", .piece_active = 1},
         {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟", .piece_active = 1},
@@ -101,11 +103,11 @@ piece_side white = {
     }};
 
 piece_side black = {
-    .King = {.cost = -900, .type = 'k', .color = 'B', .symbol = "♔", .piece_active = 1},
+    .King = {.cost = -900, .type = 'k', .color = 'B', .symbol = "♔", .piece_active = 1, .piece_moved = 0},
     .Queen = {.cost = -9, .type = 'q', .color = 'B', .symbol = "♕", .piece_active = 1},
     .Knight = {{.cost = -3, .type = 'n', .color = 'B', .symbol = "♘", .piece_active = 1}, {.cost = -3, .type = 'n', .color = 'B', .symbol = "♘", .piece_active = 1}},
     .Bishop = {{.cost = -3, .type = 'b', .color = 'B', .symbol = "♗", .piece_active = 1}, {.cost = -3, .type = 'b', .color = 'B', .symbol = "♗", .piece_active = 1}},
-    .Rook = {{.cost = -5, .type = 'r', .color = 'B', .symbol = "♖", .piece_active = 1}, {.cost = -5, .type = 'r', .color = 'B', .symbol = "♖", .piece_active = 1}},
+    .Rook = {{.cost = -5, .type = 'r', .color = 'B', .symbol = "♖", .piece_active = 1, .piece_moved = 0}, {.cost = -5, .type = 'r', .color = 'B', .symbol = "♖", .piece_active = 1, .piece_moved = 0}},
     .Pawn = {
         {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙", .piece_active = 1},
         {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙", .piece_active = 1},
@@ -537,6 +539,13 @@ int valid_rook_move(square board[size][size], int from_rank, int from_file, int 
     return 0;
 }
 
+int mag(int num)
+{
+    if (num < 0)
+        return num * -1;
+    return num;
+}
+
 int valid_bishop_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file, int queen_move)
 {
     if (
@@ -556,7 +565,7 @@ int valid_bishop_move(square board[size][size], int from_rank, int from_file, in
     int rank_diff = to_rank - from_rank;
     int file_diff = to_file - from_file;
 
-    if (rank_diff == 0 || file_diff == 0)
+    if (rank_diff == 0 || file_diff == 0 || mag(rank_diff) != mag(file_diff))
         return 0;
 
     // Top Right Movement
@@ -663,25 +672,23 @@ int valid_queen_move(square board[size][size], int from_rank, int from_file, int
         return valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 1);
 }
 
-int in_check(square board[size][size], int king_rank, int king_file)
+int in_check(square board[size][size], int king_rank, int king_file, piece *king)
 {
-    piece *king = board[king_rank][king_file].piece;
-
     // Check for Pawn Check
-    if (king->type == 'W' && king_rank + 1 < size)
+    if (king->color == 'W' && king_rank + 1 < size)
     {
-        if (king_file + 1 < size && board[king_rank + 1][king_file + 1].piece->type == 'p')
+        if (king_file + 1 < size && board[king_rank + 1][king_file + 1].piece && board[king_rank + 1][king_file + 1].piece->type == 'p')
             return 1;
 
-        if (king_file - 1 >= 0 && board[king_rank + 1][king_file - 1].piece->type == 'p')
+        if (king_file - 1 >= 0 && board[king_rank + 1][king_file - 1].piece && board[king_rank + 1][king_file - 1].piece->type == 'p')
             return 1;
     }
-    else if (king->type == 'B' && king_rank - 1 >= 0)
+    else if (king->color == 'B' && king_rank - 1 >= 0)
     {
-        if (king_file + 1 < size && board[king_rank - 1][king_file + 1].piece->type == 'p')
+        if (king_file + 1 < size && board[king_rank - 1][king_file + 1].piece && board[king_rank - 1][king_file + 1].piece->type == 'P')
             return 1;
 
-        if (king_file - 1 >= 0 && board[king_rank - 1][king_file - 1].piece->type == 'p')
+        if (king_file - 1 >= 0 && board[king_rank - 1][king_file - 1].piece && board[king_rank - 1][king_file - 1].piece->type == 'P')
             return 1;
     }
 
@@ -692,13 +699,13 @@ int in_check(square board[size][size], int king_rank, int king_file)
 
         if (temp_square->piece)
         {
-            if (temp_square->piece->color == king->color)
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
                 break;
 
-            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
                 return 1;
 
-            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
                 return 1;
         }
     }
@@ -710,13 +717,13 @@ int in_check(square board[size][size], int king_rank, int king_file)
 
         if (temp_square->piece)
         {
-            if (temp_square->piece->color == king->color)
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
                 break;
 
-            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
                 return 1;
 
-            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
                 return 1;
         }
     }
@@ -728,13 +735,13 @@ int in_check(square board[size][size], int king_rank, int king_file)
 
         if (temp_square->piece)
         {
-            if (temp_square->piece->color == king->color)
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
                 break;
 
-            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
                 return 1;
 
-            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
                 return 1;
         }
     }
@@ -746,13 +753,13 @@ int in_check(square board[size][size], int king_rank, int king_file)
 
         if (temp_square->piece)
         {
-            if (temp_square->piece->color == king->color)
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
                 break;
 
-            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
                 return 1;
 
-            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
                 return 1;
         }
     }
@@ -765,14 +772,17 @@ int in_check(square board[size][size], int king_rank, int king_file)
     {
         square *temp_square = &board[curr_rank][curr_file];
 
-        if (temp_square->piece->color == king->color)
-            break;
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
+                break;
 
-        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
-            return 1;
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+                return 1;
 
-        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
-            return 1;
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+                return 1;
+        }
 
         curr_rank++;
         curr_file++;
@@ -786,14 +796,17 @@ int in_check(square board[size][size], int king_rank, int king_file)
     {
         square *temp_square = &board[curr_rank][curr_file];
 
-        if (temp_square->piece->color == king->color)
-            break;
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
+                break;
 
-        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
-            return 1;
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+                return 1;
 
-        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
-            return 1;
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+                return 1;
+        }
 
         curr_rank++;
         curr_file--;
@@ -807,14 +820,17 @@ int in_check(square board[size][size], int king_rank, int king_file)
     {
         square *temp_square = &board[curr_rank][curr_file];
 
-        if (temp_square->piece->color == king->color)
-            break;
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
+                break;
 
-        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
-            return 1;
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+                return 1;
 
-        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
-            return 1;
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+                return 1;
+        }
 
         curr_rank--;
         curr_file--;
@@ -828,14 +844,17 @@ int in_check(square board[size][size], int king_rank, int king_file)
     {
         square *temp_square = &board[curr_rank][curr_file];
 
-        if (temp_square->piece->color == king->color)
-            break;
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color && temp_square->piece->type != king->type)
+                break;
 
-        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
-            return 1;
+            if (king->color == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+                return 1;
 
-        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
-            return 1;
+            if (king->color == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+                return 1;
+        }
 
         curr_rank--;
         curr_file++;
@@ -868,6 +887,8 @@ square *get_king_position(square board[size][size], char king_type)
 }
 
 // todo
+// e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 e1g1
+// e2e4 e7e5 d2d4 d7d5 b1c3 b8c6 c1e3 c8e6 b1c3 b8c6 d1d2 d8d7 e1c1
 int valid_king_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file)
 {
     if (
@@ -883,6 +904,95 @@ int valid_king_move(square board[size][size], int from_rank, int from_file, int 
         return 0;
     if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
         return 0;
+
+    int rank_diff = to_rank - from_rank;
+    int file_diff = to_file - from_file;
+
+    // Castle king side
+    if (
+        board[from_rank][from_file].piece->color == 'W' &&
+        from_rank == 0 &&
+        to_rank == 0 &&
+        from_file == 4 &&
+        to_file == 6 &&
+        !white.King.piece_moved &&
+        !white.Rook[1].piece_moved &&
+        board[0][5].piece == NULL &&
+        board[0][6].piece == NULL && !in_check(board, 0, 4, board[from_rank][from_file].piece) &&
+        !in_check(board, 0, 5, board[from_rank][from_file].piece) &&
+        !in_check(board, 0, 6, board[from_rank][from_file].piece))
+        return 5;
+
+    if (
+        board[from_rank][from_file].piece->color == 'B' &&
+        from_rank == 7 &&
+        to_rank == 7 &&
+        from_file == 4 &&
+        to_file == 6 &&
+        !black.King.piece_moved &&
+        !black.Rook[1].piece_moved &&
+        board[7][5].piece == NULL &&
+        board[7][6].piece == NULL &&
+        !in_check(board, 7, 4, board[from_rank][from_file].piece) &&
+        !in_check(board, 7, 5, board[from_rank][from_file].piece) &&
+        !in_check(board, 7, 6, board[from_rank][from_file].piece))
+        return 5;
+
+    // Castle Queen Side
+    if (
+        board[from_rank][from_file].piece->color == 'W' &&
+        from_rank == 0 &&
+        to_rank == 0 &&
+        from_file == 4 &&
+        to_file == 2 &&
+        !white.King.piece_moved &&
+        !white.Rook[0].piece_moved &&
+        board[0][1].piece == NULL &&
+        board[0][2].piece == NULL &&
+        board[0][3].piece == NULL &&
+        !in_check(board, 0, 1, board[from_rank][from_file].piece) &&
+        !in_check(board, 0, 2, board[from_rank][from_file].piece) &&
+        !in_check(board, 0, 3, board[from_rank][from_file].piece) &&
+        !in_check(board, 0, 4, board[from_rank][from_file].piece))
+        return 6;
+
+    if (
+        board[from_rank][from_file].piece->color == 'B' &&
+        from_rank == 7 &&
+        to_rank == 7 &&
+        from_file == 4 &&
+        to_file == 2 &&
+        !black.King.piece_moved &&
+        !black.Rook[0].piece_moved &&
+        board[7][1].piece == NULL &&
+        board[7][2].piece == NULL &&
+        board[7][3].piece == NULL &&
+        !in_check(board, 7, 1, board[from_rank][from_file].piece) &&
+        !in_check(board, 7, 2, board[from_rank][from_file].piece) &&
+        !in_check(board, 7, 3, board[from_rank][from_file].piece) &&
+        !in_check(board, 7, 4, board[from_rank][from_file].piece))
+        return 6;
+
+    if (
+        (rank_diff != 1 &&
+         rank_diff != -1 &&
+         rank_diff != 0) ||
+
+        (file_diff != 1 &&
+         file_diff != -1 &&
+         file_diff != 0))
+        return 0;
+
+    if (in_check(board, to_rank, to_file, board[from_rank][from_file].piece))
+        return 0;
+    else
+    {
+        if (
+            board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
 
     return 0;
 }
@@ -932,6 +1042,19 @@ void piece_move(square board[size][size], char *move)
         return;
     }
 
+    else if (strcmp(move, "stop") == 0 || strcmp(move, "exit") == 0)
+    {
+        for (int i = 3; i > 0; i--)
+        {
+            system("cls");
+            printf("Exiting in %ds\n", i);
+            sleep(1);
+        }
+        system("cls");
+        printf("Exiting in 0s\n");
+        exit(0);
+    }
+
     int move_len = strlen(move),
         valid_move = 0,
         /*
@@ -941,6 +1064,8 @@ void piece_move(square board[size][size], char *move)
         2 -> Valid Capture by any piece
         3 -> Two Moves by pawn
         4 -> Valid Capture by En passant
+        5 -> Castle King Side
+        6 -> Castle Queen Side
         */
         from_rank,
         from_file,
@@ -996,19 +1121,41 @@ void piece_move(square board[size][size], char *move)
             else if (current_piece_type == 'N' || current_piece_type == 'n')
                 valid_move = valid_knight_move(board, from_rank, from_file, to_rank, to_file);
             else if (current_piece_type == 'R' || current_piece_type == 'r')
+            {
                 valid_move = valid_rook_move(board, from_rank, from_file, to_rank, to_file, 0);
+                if (valid_move)
+                    board[from_rank][from_file].piece->piece_moved = 1;
+            }
             else if (current_piece_type == 'B' || current_piece_type == 'b')
                 valid_move = valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 0);
             else if (current_piece_type == 'Q' || current_piece_type == 'q')
                 valid_move = valid_queen_move(board, from_rank, from_file, to_rank, to_file);
             else if (current_piece_type == 'K' || current_piece_type == 'k')
-                valid_move = move_directly(board, move);
+            {
+                valid_move = valid_king_move(board, from_rank, from_file, to_rank, to_file);
+
+                if (valid_move)
+                    board[from_rank][from_file].piece->piece_moved = 1;
+
+                if (valid_move == 5 && board[from_rank][from_file].piece->color == 'W')
+                    white.Rook[1].piece_moved = 1;
+
+                if (valid_move == 6 && board[from_rank][from_file].piece->color == 'W')
+                    white.Rook[0].piece_moved = 1;
+
+                if (valid_move == 5 && board[from_rank][from_file].piece->color == 'B')
+                    black.Rook[1].piece_moved = 1;
+
+                if (valid_move == 6 && board[from_rank][from_file].piece->color == 'B')
+                    black.Rook[0].piece_moved = 1;
+            }
         }
     }
 
     system("cls");
     if (valid_move == 1 || valid_move == 3)
     {
+        // printf("Valid Move\n");
         if (board[to_rank][to_file].piece != NULL)
         {
             printf("Invalid Move\n");
@@ -1020,6 +1167,7 @@ void piece_move(square board[size][size], char *move)
     }
     else if (valid_move == 2)
     {
+        // printf("Valid Capture\n");
         board[to_rank][to_file].piece->piece_active = 0;
         board[to_rank][to_file].piece = board[from_rank][from_file].piece;
         board[from_rank][from_file].piece = NULL;
@@ -1047,6 +1195,27 @@ void piece_move(square board[size][size], char *move)
         board[from_rank][from_file].piece = NULL;
         move_num++;
     }
+    else if (valid_move == 5)
+    {
+        // printf("Inside King Side Castling\n");
+        board[from_rank][6].piece = board[from_rank][4].piece;
+        board[from_rank][4].piece = NULL;
+
+        board[from_rank][5].piece = board[from_rank][7].piece;
+        board[from_rank][7].piece = NULL;
+        move_num++;
+    }
+    else if (valid_move == 6)
+    {
+        // printf("Inside Queen Side Castling\n");
+        board[from_rank][2].piece = board[from_rank][4].piece;
+        board[from_rank][4].piece = NULL;
+
+        board[from_rank][3].piece = board[from_rank][0].piece;
+        board[from_rank][0].piece = NULL;
+        move_num++;
+    }
+
     else
     {
 
@@ -1091,3 +1260,4 @@ void main()
 
 // Sample Game: e2e4 e7e5 g1f3 g8f6 f3e5 d7d6 e5f3 f6e4 d1e2
 // Pawn Promotion: e2e4 d7d5 e4d5 c7c6 d5c6 e7e5 c6b7 e8e7 b7a8
+// King Side Castling: e2e4 e7e5 g1f3 b8c6 f1c4 g8f6
