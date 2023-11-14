@@ -671,6 +671,12 @@ int valid_queen_move(square board[size][size], int from_rank, int from_file, int
         return valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 1);
 }
 
+// todo: Check if king is in check
+int inCheck(square board[size][size], int king_rank, int king_file) {}
+
+// todo
+int valid_king_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file) {}
+
 int move_directly(square board[size][size], char *move)
 {
     int move_len = strlen(move);
@@ -760,7 +766,9 @@ void piece_move(square board[size][size], char *move)
                     possible_en_passant_square = NULL;
 
                 if (valid_move && (to_rank == 0 || to_rank == size - 1))
-                    pawn_promotion(board[from_file][from_rank].piece, to_rank, 1);
+                {
+                    pawn_promotion(board[from_rank][from_file].piece, to_rank, 1);
+                }
             }
             else if (current_piece_type == 'N' || current_piece_type == 'n')
                 valid_move = valid_knight_move(board, from_rank, from_file, to_rank, to_file);
@@ -844,7 +852,7 @@ void main()
     {
         char usr_inp;
         print_board(board);
-        printf("\nCurrent Score: %d\n", calc_captured_pieces_cost() * -1);
+        printf("\nCurrent Score: %d\n", calc_captured_pieces_cost());
 
         printf("\n");
         if (move_num % 2)
@@ -859,3 +867,4 @@ void main()
 }
 
 // Sample Game: e2e4 e7e5 g1f3 g8f6 f3e5 d7d6 e5f3 f6e4 d1e2
+// Pawn Promotion: e2e4 d7d5 e4d5 c7c6 d5c6 e7e5 c6b7 e8e7 b7a8
