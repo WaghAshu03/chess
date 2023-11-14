@@ -1,10 +1,60 @@
+/*
+Initial State of the board
+
+    a   b   c   d   e   f   g   h
+  +---+---+---+---+---+---+---+---+
+8 | r | n | b | q | k | b | n | r | 8
+  +---+---+---+---+---+---+---+---+
+7 | p | p | p | p | p | p | p | p | 7
+  +---+---+---+---+---+---+---+---+
+6 |   |   |   |   |   |   |   |   | 6
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   |   |   |   |   |   | 5
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   |   |   |   |   |   | 4
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   | 3
+  +---+---+---+---+---+---+---+---+
+2 | P | P | P | P | P | P | P | P | 2
+  +---+---+---+---+---+---+---+---+
+1 | R | N | B | Q | K | B | N | R | 1
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+
+                OR
+
+    a   b   c   d   e   f   g   h
+  +---+---+---+---+---+---+---+---+
+8 | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ | 8
+  +---+---+---+---+---+---+---+---+
+7 | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | 7
+  +---+---+---+---+---+---+---+---+
+6 |   |   |   |   |   |   |   |   | 6
+  +---+---+---+---+---+---+---+---+
+5 |   |   |   |   |   |   |   |   | 5
+  +---+---+---+---+---+---+---+---+
+4 |   |   |   |   |   |   |   |   | 4
+  +---+---+---+---+---+---+---+---+
+3 |   |   |   |   |   |   |   |   | 3
+  +---+---+---+---+---+---+---+---+
+2 | ♟ | ♟ | ♟ | ♟ | ♟ | ♟ | ♟ | ♟ | 2
+  +---+---+---+---+---+---+---+---+
+1 | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ | 1
+  +---+---+---+---+---+---+---+---+
+    a   b   c   d   e   f   g   h
+
+*/
+#pragma execution_character_set("utf-8")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <Windows.h>
 
 #define size 8
 
 int move_num = 1;
+int use_symbols = 0;
 
 void repeat_chr(char c, int num)
 {
@@ -19,6 +69,7 @@ typedef struct piece
     int cost;
     char type;
     char color;
+    char *symbol;
 } piece;
 
 typedef struct square
@@ -40,41 +91,42 @@ typedef struct piece_side
 } piece_side;
 
 piece_side white = {
-    .King = {.cost = 900, .type = 'K', .color = 'W'},
-    .Queen = {.cost = 9, .type = 'Q', .color = 'W'},
-    .Knight = {{.cost = 3, .type = 'N', .color = 'W'}, {.cost = 3, .type = 'N', .color = 'W'}},
-    .Bishop = {{.cost = 3, .type = 'B', .color = 'W'}, {.cost = 3, .type = 'B', .color = 'W'}},
-    .Rook = {{.cost = 5, .type = 'R', .color = 'W'}, {.cost = 5, .type = 'R', .color = 'W'}},
+    .King = {.cost = 900, .type = 'K', .color = 'W', .symbol = "♚"},
+    .Queen = {.cost = 9, .type = 'Q', .color = 'W', .symbol = "♛"},
+    .Knight = {{.cost = 3, .type = 'N', .color = 'W', .symbol = "♞"}, {.cost = 3, .type = 'N', .color = 'W', .symbol = "♞"}},
+    .Bishop = {{.cost = 3, .type = 'B', .color = 'W', .symbol = "♝"}, {.cost = 3, .type = 'B', .color = 'W', .symbol = "♝"}},
+    .Rook = {{.cost = 5, .type = 'R', .color = 'W', .symbol = "♜"}, {.cost = 5, .type = 'R', .color = 'W', .symbol = "♜"}},
     .Pawn = {
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
-        {.cost = 1, .type = 'P', .color = 'W'},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
+        {.cost = 1, .type = 'P', .color = 'W', .symbol = "♟"},
     }};
 
 piece_side black = {
-    .King = {.cost = -900, .type = 'k', .color = 'B'},
-    .Queen = {.cost = -9, .type = 'q', .color = 'B'},
-    .Knight = {{.cost = -3, .type = 'n', .color = 'B'}, {.cost = 3, .type = 'n', .color = 'B'}},
-    .Bishop = {{.cost = -3, .type = 'b', .color = 'B'}, {.cost = 3, .type = 'b', .color = 'B'}},
-    .Rook = {{.cost = -5, .type = 'r', .color = 'B'}, {.cost = 5, .type = 'r', .color = 'B'}},
+    .King = {.cost = -900, .type = 'k', .color = 'B', .symbol = "♔"},
+    .Queen = {.cost = -9, .type = 'q', .color = 'B', .symbol = "♕"},
+    .Knight = {{.cost = -3, .type = 'n', .color = 'B', .symbol = "♘"}, {.cost = -3, .type = 'n', .color = 'B', .symbol = "♘"}},
+    .Bishop = {{.cost = -3, .type = 'b', .color = 'B', .symbol = "♗"}, {.cost = -3, .type = 'b', .color = 'B', .symbol = "♗"}},
+    .Rook = {{.cost = -5, .type = 'r', .color = 'B', .symbol = "♖"}, {.cost = -5, .type = 'r', .color = 'B', .symbol = "♖"}},
     .Pawn = {
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
-        {.cost = -1, .type = 'p', .color = 'B'},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
+        {.cost = -1, .type = 'p', .color = 'B', .symbol = "♙"},
     }};
 
 piece *captured_pieces[size * 4] = {NULL};
 
+// todo: Calculate cost based on onboard pieces not by captured pieces
 int calc_captured_pieces_cost()
 {
     int total = 0;
@@ -87,6 +139,9 @@ int calc_captured_pieces_cost()
     }
     return total;
 }
+
+// todo
+void pawn_promotion() {}
 
 int fileIndex(char file)
 {
@@ -116,7 +171,12 @@ void print_board(square board[size][size])
         for (int col = 0; col < size; col++)
         {
             if (board[row][col].piece != NULL)
-                printf(" %c |", board[row][col].piece->type);
+            {
+                if (use_symbols && board[row][col].piece->symbol)
+                    printf(" %s |", board[row][col].piece->symbol);
+                else
+                    printf(" %c |", board[row][col].piece->type);
+            }
             else
                 printf("   |");
         }
@@ -166,7 +226,13 @@ void reset_board(square board[size][size])
     for (int i = 0; i < size; i++)
     {
         board[1][fileIndex('a' + i)].piece = &white.Pawn[i];
+        white.Pawn[i].cost = 1;
+        white.Pawn[i].symbol = "♟";
+        white.Pawn[i].type = 'P';
         board[size - 2][fileIndex('a' + i)].piece = &black.Pawn[i];
+        black.Pawn[i].cost = -1;
+        black.Pawn[i].symbol = "♙";
+        black.Pawn[i].type = 'p';
     }
 
     move_num = 1;
@@ -458,8 +524,6 @@ int valid_queen_move(square board[size][size], int from_rank, int from_file, int
         return valid_rook_move(board, from_rank, from_file, to_rank, to_file, 1);
     else
         return valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 1);
-
-    return 0;
 }
 
 int move_directly(square board[size][size], char *move)
@@ -499,6 +563,12 @@ int move_directly(square board[size][size], char *move)
 void piece_move(square board[size][size], char *move)
 {
     static square *possible_en_passant_square = NULL;
+
+    if (strcmp(move, "reset") == 0)
+    {
+        reset_board(board);
+        return;
+    }
 
     int move_len = strlen(move),
         valid_move = 0,
@@ -626,17 +696,23 @@ void piece_move(square board[size][size], char *move)
 
 void main()
 {
-
+    SetConsoleOutputCP(65001);
+    system("cls");
+    printf("Use Symbols or Letters?\n\n");
+    printf("Letters(0): K  Q  R  N  B  P\n");
+    printf("Symbols(1): ♚  ♛  ♜  ♞  ♝  ♟\n");
+    printf("\nNote: Only choose symbols if they are properly visible on your system.\n");
+    printf("\nYour Response: ");
+    scanf("%d", &use_symbols);
+    system("cls");
     square board[size][size];
     reset_board(board);
-    system("cls");
-    printf("\nBlack Score: %d\n", calc_captured_pieces_cost());
 
     while (1)
     {
         char usr_inp;
         print_board(board);
-        printf("\nWhite Score: %d\n", calc_captured_pieces_cost() * -1);
+        printf("\nCurrent Score: %d\n", calc_captured_pieces_cost() * -1);
 
         printf("\n");
         if (move_num % 2)
@@ -647,7 +723,5 @@ void main()
         scanf("%s", &usr_inp);
         system("cls");
         piece_move(board, &usr_inp);
-
-        printf("\nBlack Score: %d\n", calc_captured_pieces_cost());
     }
 }
