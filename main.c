@@ -56,14 +56,6 @@ Initial State of the board
 int move_num = 1;
 int use_symbols = 0;
 
-void repeat_chr(char c, int num)
-{
-    for (int i = 0; i < num; i++)
-    {
-        printf("%c", c);
-    }
-}
-
 typedef struct piece
 {
     int cost;
@@ -671,11 +663,229 @@ int valid_queen_move(square board[size][size], int from_rank, int from_file, int
         return valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 1);
 }
 
-// todo: Check if king is in check
-int inCheck(square board[size][size], int king_rank, int king_file) {}
+int in_check(square board[size][size], int king_rank, int king_file)
+{
+    piece *king = board[king_rank][king_file].piece;
+
+    // Check for Pawn Check
+    if (king->type == 'W' && king_rank + 1 < size)
+    {
+        if (king_file + 1 < size && board[king_rank + 1][king_file + 1].piece->type == 'p')
+            return 1;
+
+        if (king_file - 1 >= 0 && board[king_rank + 1][king_file - 1].piece->type == 'p')
+            return 1;
+    }
+    else if (king->type == 'B' && king_rank - 1 >= 0)
+    {
+        if (king_file + 1 < size && board[king_rank - 1][king_file + 1].piece->type == 'p')
+            return 1;
+
+        if (king_file - 1 >= 0 && board[king_rank - 1][king_file - 1].piece->type == 'p')
+            return 1;
+    }
+
+    // Check Up
+    for (int temp_rank = king_rank + 1; temp_rank < size; temp_rank++)
+    {
+        square *temp_square = &board[temp_rank][king_file];
+
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color)
+                break;
+
+            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+                return 1;
+
+            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+                return 1;
+        }
+    }
+
+    // Check Down
+    for (int temp_rank = king_rank - 1; temp_rank >= 0; temp_rank--)
+    {
+        square *temp_square = &board[temp_rank][king_file];
+
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color)
+                break;
+
+            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+                return 1;
+
+            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+                return 1;
+        }
+    }
+
+    // Check Right
+    for (int temp_file = king_file + 1; temp_file < size; temp_file++)
+    {
+        square *temp_square = &board[king_rank][temp_file];
+
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color)
+                break;
+
+            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+                return 1;
+
+            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+                return 1;
+        }
+    }
+
+    // Check Left
+    for (int temp_file = king_file - 1; temp_file >= 0; temp_file--)
+    {
+        square *temp_square = &board[king_rank][temp_file];
+
+        if (temp_square->piece)
+        {
+            if (temp_square->piece->color == king->color)
+                break;
+
+            if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'r'))
+                return 1;
+
+            if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'R'))
+                return 1;
+        }
+    }
+
+    // Check Top Left
+    int curr_rank = king_rank + 1;
+    int curr_file = king_file + 1;
+
+    while (curr_rank < size && curr_file < size)
+    {
+        square *temp_square = &board[curr_rank][curr_file];
+
+        if (temp_square->piece->color == king->color)
+            break;
+
+        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+            return 1;
+
+        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+            return 1;
+
+        curr_rank++;
+        curr_file++;
+    }
+
+    // Check Top Right
+    curr_rank = king_rank + 1;
+    curr_file = king_file - 1;
+
+    while (curr_rank < size && curr_file >= 0)
+    {
+        square *temp_square = &board[curr_rank][curr_file];
+
+        if (temp_square->piece->color == king->color)
+            break;
+
+        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+            return 1;
+
+        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+            return 1;
+
+        curr_rank++;
+        curr_file--;
+    }
+
+    // Check Bottom Right
+    curr_rank = king_rank - 1;
+    curr_file = king_file - 1;
+
+    while (curr_rank >= 0 && curr_file >= 0)
+    {
+        square *temp_square = &board[curr_rank][curr_file];
+
+        if (temp_square->piece->color == king->color)
+            break;
+
+        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+            return 1;
+
+        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+            return 1;
+
+        curr_rank--;
+        curr_file--;
+    }
+
+    // Check Bottom Left
+    curr_rank = king_rank - 1;
+    curr_file = king_file + 1;
+
+    while (curr_rank >= 0 && curr_file < size)
+    {
+        square *temp_square = &board[curr_rank][curr_file];
+
+        if (temp_square->piece->color == king->color)
+            break;
+
+        if (king->type == 'W' && (temp_square->piece->type == 'q' || temp_square->piece->type == 'b'))
+            return 1;
+
+        if (king->type == 'B' && (temp_square->piece->type == 'Q' || temp_square->piece->type == 'B'))
+            return 1;
+
+        curr_rank--;
+        curr_file++;
+    }
+
+    return 0;
+}
+
+square *get_king_position(square board[size][size], char king_type)
+{
+    if (king_type == 'K')
+    {
+        for (int rank = 0; rank < size; rank++)
+            for (int file = 0; file < size; file++)
+                if (board[rank][file].piece->type = king_type)
+                    return &board[rank][file];
+    }
+    else if (king_type == 'k')
+    {
+        for (int rank = size - 1; rank >= 0; rank++)
+            for (int file = 0; file < size; file++)
+                if (board[rank][file].piece->type = king_type)
+                    return &board[rank][file];
+    }
+    else
+    {
+        printf("Invalid Input\n");
+        return NULL;
+    }
+}
 
 // todo
-int valid_king_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file) {}
+int valid_king_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file)
+{
+    if (
+        from_rank == -1 ||
+        from_file == -1 ||
+        to_rank == -1 ||
+        to_file == -1 ||
+        board[from_rank][from_file].piece == NULL ||
+        (board[from_rank][from_file].piece->type != 'K' && board[from_rank][from_file].piece->type != 'k'))
+        return 0;
+
+    if (board[from_rank][from_file].piece->color == 'W' && move_num % 2 == 0)
+        return 0;
+    if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
+        return 0;
+
+    return 0;
+}
 
 int move_directly(square board[size][size], char *move)
 {
@@ -718,6 +928,7 @@ void piece_move(square board[size][size], char *move)
     if (strcmp(move, "reset") == 0)
     {
         reset_board(board);
+        system("cls");
         return;
     }
 
@@ -767,7 +978,19 @@ void piece_move(square board[size][size], char *move)
 
                 if (valid_move && (to_rank == 0 || to_rank == size - 1))
                 {
-                    pawn_promotion(board[from_rank][from_file].piece, to_rank, 1);
+                    int user_choice = -1;
+
+                    while (user_choice < 1 || user_choice > 4)
+                    {
+                        printf("\nPromotion Choice:\n");
+                        printf("1. Queen\n2. Knight\n3. Bishop\n4. Rook\n\nEnter your choice: ");
+                        scanf("%d", &user_choice);
+
+                        if (user_choice < 1 || user_choice > 4)
+                            printf("\nInvalid Input, Try Again\n");
+                    }
+
+                    pawn_promotion(board[from_rank][from_file].piece, to_rank, user_choice);
                 }
             }
             else if (current_piece_type == 'N' || current_piece_type == 'n')
@@ -783,6 +1006,7 @@ void piece_move(square board[size][size], char *move)
         }
     }
 
+    system("cls");
     if (valid_move == 1 || valid_move == 3)
     {
         if (board[to_rank][to_file].piece != NULL)
@@ -861,7 +1085,6 @@ void main()
             printf("Enter Black's Move: ");
 
         scanf("%s", &usr_inp);
-        system("cls");
         piece_move(board, &usr_inp);
     }
 }
