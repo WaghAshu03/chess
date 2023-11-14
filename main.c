@@ -886,9 +886,6 @@ square *get_king_position(square board[size][size], char king_type)
     }
 }
 
-// todo
-// e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 e1g1
-// e2e4 e7e5 d2d4 d7d5 b1c3 b8c6 c1e3 c8e6 b1c3 b8c6 d1d2 d8d7 e1c1
 int valid_king_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file)
 {
     if (
@@ -1260,4 +1257,5 @@ void main()
 
 // Sample Game: e2e4 e7e5 g1f3 g8f6 f3e5 d7d6 e5f3 f6e4 d1e2
 // Pawn Promotion: e2e4 d7d5 e4d5 c7c6 d5c6 e7e5 c6b7 e8e7 b7a8
-// King Side Castling: e2e4 e7e5 g1f3 b8c6 f1c4 g8f6
+// King Side Castling: e2e4 e7e5 g1f3 b8c6 f1c4 g8f6 e1g1
+// Queen Side Castling: e2e4 e7e5 d2d4 d7d5 b1c3 b8c6 c1e3 c8e6 b1c3 b8c6 d1d2 d8d7 e1c1
