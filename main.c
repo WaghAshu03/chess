@@ -232,6 +232,34 @@ int valid_pawn_move(square board[size][size], int from_rank, int from_file, int 
     return 0;
 }
 
+int valid_knight_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file)
+{
+    if (
+        from_rank == -1 ||
+        from_file == -1 ||
+        to_rank == -1 ||
+        to_file == -1 ||
+        board[from_rank][from_file].piece == NULL || (board[from_rank][from_file].piece->type != 'N' && board[from_rank][from_file].piece->type != 'n'))
+        return 0;
+
+    if ((to_rank - from_rank == 2 || to_rank - from_rank == -2) && (to_file - from_file == 1 || to_file - from_file == -1))
+    {
+        if (board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
+    else if ((to_rank - from_rank == 1 || to_rank - from_rank == -1) && (to_file - from_file == 2 || to_file - from_file == -2))
+    {
+        if (board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
+
+    return 0;
+}
+
 void move_directly(square board[size][size], char *move)
 {
     int move_len = 0;
@@ -310,6 +338,8 @@ void piece_move(square board[size][size], char *move)
                 else
                     possible_en_passant_square = NULL;
             }
+            else if (current_piece_type == 'N' || current_piece_type == 'n')
+                valid_move = valid_knight_move(board, from_rank, from_file, to_rank, to_file);
         }
     }
 
