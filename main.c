@@ -168,6 +168,8 @@ void reset_board(square board[size][size])
         board[1][fileIndex('a' + i)].piece = &white.Pawn[i];
         board[size - 2][fileIndex('a' + i)].piece = &black.Pawn[i];
     }
+
+    move_num = 1;
 }
 
 int valid_pawn_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file, square *possible_en_passant_square)
@@ -179,23 +181,25 @@ int valid_pawn_move(square board[size][size], int from_rank, int from_file, int 
         to_rank == -1 ||
         to_file == -1 ||
         board[from_rank][from_file].piece == NULL || (board[from_rank][from_file].piece->type != 'P' && board[from_rank][from_file].piece->type != 'p'))
-    {
-        printf("Initial Invalid\n");
         return 0;
-    }
+
+    if (board[from_rank][from_file].piece->color == 'W' && move_num % 2 == 0)
+        return 0;
+    if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
+        return 0;
 
     // straight moves
     if (from_file == to_file)
     {
         int total_moves = to_rank - from_rank; // +ve for white and -ve for black
 
-        if (move_num % 2 == 1 && total_moves == 1 && board[from_rank][from_file].piece->color == 'W' && board[to_rank][to_file].piece == NULL)
+        if (total_moves == 1 && board[from_rank][from_file].piece->color == 'W' && board[to_rank][to_file].piece == NULL)
             return 1;
-        else if (move_num % 2 == 0 && total_moves == -1 && board[from_rank][from_file].piece->color == 'B' && board[to_rank][to_file].piece == NULL)
+        else if (total_moves == -1 && board[from_rank][from_file].piece->color == 'B' && board[to_rank][to_file].piece == NULL)
             return 1;
-        else if (move_num % 2 == 1 && total_moves == 2 && board[from_rank][from_file].piece->color == 'W' && from_rank == 1 && board[from_rank + 1][from_file].piece == NULL && board[from_rank + 2][from_file].piece == NULL)
+        else if (total_moves == 2 && board[from_rank][from_file].piece->color == 'W' && from_rank == 1 && board[from_rank + 1][from_file].piece == NULL && board[from_rank + 2][from_file].piece == NULL)
             return 3;
-        else if (move_num % 2 == 0 && total_moves == -2 && board[from_rank][from_file].piece->color == 'B' && from_rank == 6 && board[from_rank - 1][from_file].piece == NULL && board[from_rank - 2][from_file].piece == NULL)
+        else if (total_moves == -2 && board[from_rank][from_file].piece->color == 'B' && from_rank == 6 && board[from_rank - 1][from_file].piece == NULL && board[from_rank - 2][from_file].piece == NULL)
             return 3;
     }
 
@@ -203,27 +207,21 @@ int valid_pawn_move(square board[size][size], int from_rank, int from_file, int 
     if (from_file - to_file == 1 || from_file - to_file == -1)
     {
         // Simple Capture
-        if (move_num % 2 == 1 && board[from_rank][from_file].piece->color == 'W' &&
+        if (board[from_rank][from_file].piece->color == 'W' &&
             to_rank - from_rank == 1 &&
             board[to_rank][to_file].piece != NULL &&
             board[to_rank][to_file].piece->color == 'B')
             return 2;
 
-        if (move_num % 2 == 0 && board[from_rank][from_file].piece->color == 'B' &&
+        if (board[from_rank][from_file].piece->color == 'B' &&
             to_rank - from_rank == -1 &&
             board[to_rank][to_file].piece != NULL &&
             board[to_rank][to_file].piece->color == 'W')
             return 2;
 
         // En Passant
-        if (move_num % 2 == 1 && possible_en_passant_square != NULL &&
-            (to_rank - possible_en_passant_square->rank == 1) &&
-            (to_file == possible_en_passant_square->file) &&
-            (to_file - from_file == 1 || to_file - from_file == -1))
-            return 4;
-
-        if (move_num % 2 == 0 && possible_en_passant_square != NULL &&
-            (to_rank - possible_en_passant_square->rank == -1) &&
+        if (possible_en_passant_square != NULL &&
+            (to_rank - possible_en_passant_square->rank == 1 || to_rank - possible_en_passant_square->rank == -1) &&
             (to_file == possible_en_passant_square->file) &&
             (to_file - from_file == 1 || to_file - from_file == -1))
             return 4;
@@ -239,7 +237,13 @@ int valid_knight_move(square board[size][size], int from_rank, int from_file, in
         from_file == -1 ||
         to_rank == -1 ||
         to_file == -1 ||
-        board[from_rank][from_file].piece == NULL || (board[from_rank][from_file].piece->type != 'N' && board[from_rank][from_file].piece->type != 'n'))
+        board[from_rank][from_file].piece == NULL ||
+        (board[from_rank][from_file].piece->type != 'N' && board[from_rank][from_file].piece->type != 'n'))
+        return 0;
+
+    if (board[from_rank][from_file].piece->color == 'W' && move_num % 2 == 0)
+        return 0;
+    if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
         return 0;
 
     if ((to_rank - from_rank == 2 || to_rank - from_rank == -2) && (to_file - from_file == 1 || to_file - from_file == -1))
@@ -260,12 +264,207 @@ int valid_knight_move(square board[size][size], int from_rank, int from_file, in
     return 0;
 }
 
-void move_directly(square board[size][size], char *move)
+int valid_rook_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file, int queen_move)
 {
-    int move_len = 0;
+    if (
+        from_rank == -1 ||
+        from_file == -1 ||
+        to_rank == -1 ||
+        to_file == -1 ||
+        board[from_rank][from_file].piece == NULL ||
+        (!queen_move && board[from_rank][from_file].piece->type != 'R' && board[from_rank][from_file].piece->type != 'r'))
+        return 0;
 
-    while (move[move_len] != '\0')
-        move_len++;
+    if (board[from_rank][from_file].piece->color == 'W' && move_num % 2 == 0)
+        return 0;
+    if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
+        return 0;
+
+    if (to_rank == from_rank)
+    {
+        if (to_file - from_file > 0)
+        { // Moving Left to Right
+            // Checking in between squares
+            for (int i = from_file + 1; i < to_file; i++)
+                if (board[from_rank][i].piece != NULL)
+                    return 0;
+            if (board[to_rank][to_file].piece == NULL)
+                return 1;
+            else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+                return 2;
+        }
+        else if (to_file - from_file < 0)
+        { // Moving Right to Left
+
+            for (int i = from_file - 1; i > to_file; i--)
+                if (board[from_rank][i].piece != NULL)
+                    return 0;
+            if (board[to_rank][to_file].piece == NULL)
+                return 1;
+            else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+                return 2;
+        }
+    }
+    else if (to_file == from_file)
+    {
+        if (to_rank - from_rank > 0)
+        { // Moving Up
+            for (int i = from_rank + 1; i < to_rank; i++)
+                if (board[i][from_file].piece != NULL)
+                    return 0;
+
+            if (board[to_rank][to_file].piece == NULL)
+                return 1;
+            else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+                return 2;
+        }
+        else if (to_rank - from_rank < 0)
+        { // Moving Down
+            for (int i = from_rank - 1; i > to_rank; i--)
+                if (board[i][from_file].piece != NULL)
+                    return 0;
+
+            if (board[to_rank][to_file].piece == NULL)
+                return 1;
+            else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+                return 2;
+        }
+    }
+
+    return 0;
+}
+
+int valid_bishop_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file, int queen_move)
+{
+    if (
+        from_rank == -1 ||
+        from_file == -1 ||
+        to_rank == -1 ||
+        to_file == -1 ||
+        board[from_rank][from_file].piece == NULL ||
+        (!queen_move && board[from_rank][from_file].piece->type != 'B' && board[from_rank][from_file].piece->type != 'b'))
+        return 0;
+
+    if (board[from_rank][from_file].piece->color == 'W' && move_num % 2 == 0)
+        return 0;
+    if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
+        return 0;
+
+    int rank_diff = to_rank - from_rank;
+    int file_diff = to_file - from_file;
+
+    if (rank_diff == 0 || file_diff == 0)
+        return 0;
+
+    // Top Right Movement
+    if (rank_diff > 0 && file_diff > 0)
+    {
+        int curr_rank = from_rank + 1;
+        int curr_file = from_file + 1;
+
+        while (curr_rank < to_rank && curr_file < to_file)
+        {
+            if (board[curr_rank][curr_file].piece != NULL)
+                return 0;
+
+            curr_rank++;
+            curr_file++;
+        }
+
+        if (board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
+
+    // Top Left Movement
+    if (rank_diff > 0 && file_diff < 0)
+    {
+        int curr_rank = from_rank + 1;
+        int curr_file = from_file - 1;
+
+        while (curr_rank < to_rank && curr_file > to_file)
+        {
+            if (board[curr_rank][curr_file].piece != NULL)
+                return 0;
+
+            curr_rank++;
+            curr_file--;
+        }
+        if (board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
+
+    // Bottom Left Movement
+    if (rank_diff < 0 && file_diff < 0)
+    {
+        int curr_rank = from_rank - 1;
+        int curr_file = from_file - 1;
+
+        while (curr_rank > to_rank && curr_file > to_file)
+        {
+            if (board[curr_rank][curr_file].piece != NULL)
+                return 0;
+
+            curr_rank--;
+            curr_file--;
+        }
+        if (board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
+
+    // Bottom Righ Movement
+    if (rank_diff < 0 && file_diff > 0)
+    {
+        int curr_rank = from_rank - 1;
+        int curr_file = from_file + 1;
+
+        while (curr_rank > to_rank && curr_file < to_file)
+        {
+            if (board[curr_rank][curr_file].piece != NULL)
+                return 0;
+
+            curr_rank--;
+            curr_file++;
+        }
+        if (board[to_rank][to_file].piece == NULL)
+            return 1;
+        else if (board[to_rank][to_file].piece->color != board[from_rank][from_file].piece->color)
+            return 2;
+    }
+}
+
+int valid_queen_move(square board[size][size], int from_rank, int from_file, int to_rank, int to_file)
+{
+    if (
+        from_rank == -1 ||
+        from_file == -1 ||
+        to_rank == -1 ||
+        to_file == -1 ||
+        board[from_rank][from_file].piece == NULL ||
+        (board[from_rank][from_file].piece->type != 'Q' && board[from_rank][from_file].piece->type != 'q'))
+        return 0;
+
+    if (board[from_rank][from_file].piece->color == 'W' && move_num % 2 == 0)
+        return 0;
+    if (board[from_rank][from_file].piece->color == 'B' && move_num % 2 == 1)
+        return 0;
+
+    if (to_rank - from_rank == 0 || to_file - from_file == 0)
+        return valid_rook_move(board, from_rank, from_file, to_rank, to_file, 1);
+    else
+        return valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 1);
+
+    return 0;
+}
+
+int move_directly(square board[size][size], char *move)
+{
+    int move_len = strlen(move);
 
     if (move_len == 4)
     {
@@ -279,19 +478,29 @@ void move_directly(square board[size][size], char *move)
             to_rank != -1 &&
             to_file != -1)
         {
-            board[to_rank][to_file].piece = board[from_rank][from_file].piece;
-            board[from_rank][from_file].piece = NULL;
+            if (board[from_rank][from_file].piece == NULL)
+                return 0;
+
+            if (board[to_rank][to_file].piece != NULL)
+            {
+                if (board[to_rank][to_file].piece->color == board[from_rank][from_file].piece->color)
+                    return 0;
+                return 2;
+            }
+            return 1;
+            // board[to_rank][to_file].piece = board[from_rank][from_file].piece;
+            // board[from_rank][from_file].piece = NULL;
         }
     }
-    else
-        printf("Invalid Move\n");
+
+    return 0;
 }
 
 void piece_move(square board[size][size], char *move)
 {
     static square *possible_en_passant_square = NULL;
 
-    int move_len = 0,
+    int move_len = strlen(move),
         valid_move = 0,
         /*
         valid_move:
@@ -305,9 +514,6 @@ void piece_move(square board[size][size], char *move)
         from_file,
         to_rank,
         to_file;
-
-    while (move[move_len] != '\0')
-        move_len++;
 
     if (move_len == 4)
     {
@@ -340,6 +546,14 @@ void piece_move(square board[size][size], char *move)
             }
             else if (current_piece_type == 'N' || current_piece_type == 'n')
                 valid_move = valid_knight_move(board, from_rank, from_file, to_rank, to_file);
+            else if (current_piece_type == 'R' || current_piece_type == 'r')
+                valid_move = valid_rook_move(board, from_rank, from_file, to_rank, to_file, 0);
+            else if (current_piece_type == 'B' || current_piece_type == 'b')
+                valid_move = valid_bishop_move(board, from_rank, from_file, to_rank, to_file, 0);
+            else if (current_piece_type == 'Q' || current_piece_type == 'q')
+                valid_move = valid_queen_move(board, from_rank, from_file, to_rank, to_file);
+            else if (current_piece_type == 'K' || current_piece_type == 'k')
+                valid_move = move_directly(board, move);
         }
     }
 
@@ -416,12 +630,14 @@ void main()
     square board[size][size];
     reset_board(board);
     system("cls");
-    printf("\nCurrent Score: %d\n", calc_captured_pieces_cost());
+    printf("\nBlack Score: %d\n", calc_captured_pieces_cost());
 
     while (1)
     {
         char usr_inp;
         print_board(board);
+        printf("\nWhite Score: %d\n", calc_captured_pieces_cost() * -1);
+
         printf("\n");
         if (move_num % 2)
             printf("Enter White's Move: ");
@@ -432,6 +648,6 @@ void main()
         system("cls");
         piece_move(board, &usr_inp);
 
-        printf("\nCurrent Score: %d\n", calc_captured_pieces_cost());
+        printf("\nBlack Score: %d\n", calc_captured_pieces_cost());
     }
 }
